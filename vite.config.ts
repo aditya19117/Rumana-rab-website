@@ -7,16 +7,24 @@ import viteTsConfigPaths from "vite-tsconfig-paths";
 export default defineConfig(async (env) => {
   const { command, mode } = env;
 
+  // Vercel sets the `VERCEL` env var during builds. Use the `vercel` preset
+  // there (Build Output API → `.vercel/output`); keep the Cloudflare Workers
+  // preset for local/wrangler builds.
+  const deployingToVercel = Boolean(process.env["VERCEL"]);
   const nitroPlugin =
     command === "build"
       ? (await import("nitro/vite")).nitro({
-          defaultPreset: "cloudflare-module",
-          output: {
-            dir: "dist",
-            serverDir: "dist/server",
-            publicDir: "dist/client",
-          },
-          cloudflare: { nodeCompat: true, deployConfig: true },
+          preset: deployingToVercel ? "vercel" : "cloudflare-module",
+          ...(deployingToVercel
+            ? {}
+            : {
+                output: {
+                  dir: "dist",
+                  serverDir: "dist/server",
+                  publicDir: "dist/client",
+                },
+                cloudflare: { nodeCompat: true, deployConfig: true },
+              }),
         })
       : undefined;
 
